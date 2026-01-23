@@ -89,30 +89,29 @@ def evaluate_PFLBaseline(
     # Set evaluation mode
     model.eval()
 
+    # Initialize predicted parameters
+    pred_values = values
+    pred_weights = weights
+    pred_capacity = capacity
+
     # Disable gradient computation
     with torch.no_grad():
         # Forward pass
-        outputs = model(X_test) #
+        outputs = model(X_test) # shape (N_instances, dim_output)
 
     if stochastic_target == 'values':
-        values = outputs
+        pred_values = outputs
     elif stochastic_target == 'weights':
-        weights = outputs
+        pred_weights = outputs
     elif stochastic_target == 'capacity':
-        # TODO : ensure capacity is integer and positive
-        capacity = outputs.squeeze() # Squeeze to get shape (N_instances,)
+        # TODO : ensure capacity is positive
+        pred_capacity = outputs.squeeze() # Squeeze to get shape (N_instances,)
     
     # Compute avg regret
     total_regret = 0.0
     for i in range(X_test.size(0)):
-
-        vals = values[i].cpu().numpy()
-        wts = weights[i].cpu().numpy()
-        cap = int(capacity[i].item())
-
         # Solve KP with predicted parameters
-        cost, _, _ = solve_KP(vals, wts, cap)
-
+        cost, _, _ = solve_KP(pred_values[i], pred_weights[i], pred_capacity[i])
         # Compute regret
         regret = abs(cost - optimal_values[i].item())
         total_regret += regret

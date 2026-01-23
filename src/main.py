@@ -4,42 +4,34 @@ import torch.optim as optim
 import torch.nn as nn
 import torch
 
-def split_np_array(arr, train_size, val_size):
-    train_arr = arr[:train_size]
-    val_arr = arr[train_size:train_size + val_size]
-    test_arr = arr[train_size + val_size:]
-    return train_arr, val_arr, test_arr
+def split_tensor(tensor, train_size, val_size):
+    train = tensor[:train_size]
+    val = tensor[train_size:train_size + val_size]
+    test = tensor[train_size + val_size:]
+    return train, val, test
 
 
 if __name__ == "__main__":
 
-    # dataset path
-    dataset_path = "datasets/KP/knapsack_data_solved.npz"
+    # Dataset path
+    dataset_path = "datasets/KP/knapsack_data_solved.pt"
 
     # parse dataset
     print("Loading dataset...")
     X, values, weights, capacity, optimal_values, solve_times = parse_solved_instances(dataset_path)
     num_samples = len(values)
 
-    # convert to torch tensors
-    X = torch.tensor(X, dtype=torch.float32)
-    values = torch.tensor(values, dtype=torch.float32)
-    weights = torch.tensor(weights, dtype=torch.float32)
-    capacity = torch.tensor(capacity, dtype=torch.float32)
-    optimal_values = torch.tensor(optimal_values, dtype=torch.float32)
-    solve_times = torch.tensor(solve_times, dtype=torch.float32)
-
     # Split train, val, test
     train_size = int(0.7 * num_samples)
     val_size = int(0.15 * num_samples)
     test_size = num_samples - train_size - val_size
 
-    X_train, X_val, X_test = split_np_array(X, train_size, val_size)
-    values_train, values_val, values_test = split_np_array(values, train_size, val_size)
-    weights_train, weights_val, weights_test = split_np_array(weights, train_size, val_size)
-    capacity_train, capacity_val, capacity_test = split_np_array(capacity, train_size, val_size)
-    optimal_values_train, optimal_values_val, optimal_values_test = split_np_array(optimal_values, train_size, val_size)
-    solve_times_train, solve_times_val, solve_times_test = split_np_array(solve_times, train_size, val_size)
+    X_train, X_val, X_test = split_tensor(X, train_size, val_size)
+    values_train, values_val, values_test = split_tensor(values, train_size, val_size)
+    weights_train, weights_val, weights_test = split_tensor(weights, train_size, val_size)
+    capacity_train, capacity_val, capacity_test = split_tensor(capacity, train_size, val_size)
+    optimal_values_train, optimal_values_val, optimal_values_test = split_tensor(optimal_values, train_size, val_size)
+    solve_times_train, solve_times_val, solve_times_test = split_tensor(solve_times, train_size, val_size)
 
     # Select stochastic target (between 'values', 'weights', 'capacity')
     stochastic_target = 'values'
@@ -53,7 +45,7 @@ if __name__ == "__main__":
     # Initialize model
     input_dim = X.shape[1]
 
-    hidden_dim = 64
+    hidden_dim = 128
 
     if stochastic_target == 'capacity':
         output_dim = 1

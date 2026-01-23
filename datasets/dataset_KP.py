@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 import os 
 import argparse
 
@@ -34,52 +34,53 @@ def generate_kp_data(
     """    
 
     # Set random seed for reproducibility
-    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     # 0. Determine the dimensionality of the stochastic output
     # If target is capacity, we have a single value per instance
     actual_dim_target = 1 if stochastic_target == 'capacity' else dim_y
 
     # 1. Initialize random matrix B* (Bernoulli 0.5)
-    B_star = np.random.binomial(n=1, p=0.5, size=(actual_dim_target, dim_x))
+    B_star = torch.bernoulli(torch.full((actual_dim_target, dim_x), 0.5))    
     
     # 2. Input feature vectors generation x_i ~ N(0, I)
-    X = np.random.normal(0, 1, (n_samples, dim_x))
+    X = torch.randn(n_samples, dim_x)
     
     # 3. Core stochastic mapping: Polynomial + Noise + Poisson
     # Equation: [(1/sqrt(p) * B*x + 3)^deg + 1]
-    poly_term = ((X @ B_star.T) / np.sqrt(dim_x) + 3)**deg + 1
-    noise = np.random.uniform(1 - eps_bar, 1 + eps_bar, (n_samples, actual_dim_target))
+    poly_term = ((X @ B_star.T) / torch.sqrt(torch.tensor(dim_x, dtype=torch.float)) + 3)**deg + 1
+    noise = torch.empty(n_samples, actual_dim_target).uniform_(1 - eps_bar, 1 + eps_bar)
     y_lambda = poly_term * noise
     
     # Final stochastic values generated via Poisson distribution
-    stochastic_signal = np.random.poisson(y_lambda).astype(float)
+    stochastic_signal = torch.poisson(y_lambda).float()
 
     # 4. Scenario assignment
     if stochastic_target == 'values':
-        # Values depend on X, Weights and Capacity are fixed
+        # Values depend on X
         values = stochastic_signal
-        weights = np.random.randint(1, 15, size=(dim_y,))
-        # Broadcast fixed weights to all samples for consistency
-        weights = np.tile(weights, (n_samples, 1))
-        capacity = np.full(n_samples, int(np.sum(weights[0]) * 0.5))
+        # Weights and Capacity are fixed
+        weights = torch.randint(1, 15, (dim_y,)).float()
+        weights = weights.repeat(n_samples, 1)
+        capacity = torch.full((n_samples,), int(weights[0].sum().item() * 0.5))
         
     elif stochastic_target == 'weights':
-        # Weights depend on X, Values and Capacity are fixed
-        # Add 1 to avoid zero weights which would make the problem trivial
+        # Weights depend on X
+        # Add 1 to avoid zero weights which would make the problem trivial # TODO: check if needed
         weights = stochastic_signal + 1
-        values = np.random.randint(10, 50, size=(dim_y,))
-        values = np.tile(values, (n_samples, 1))
-        # Capacity fixed based on the average of generated weights
-        capacity = np.full(n_samples, int(np.mean(weights) * dim_y * 0.5))
-        
+        #Values and Capacity are fixed
+        values = torch.randint(10, 50, (dim_y,)).float()
+        values = values.repeat(n_samples, 1)
+        capacity = torch.full((n_samples,), int(weights.mean().item() * dim_y * 0.5))
+
     elif stochastic_target == 'capacity':
-        # Capacity depends on X, Values and Weights are fixed
+        # Capacity depends on X
         capacity = stochastic_signal.flatten()
-        values = np.random.randint(10, 50, size=(dim_y,))
-        values = np.tile(values, (n_samples, 1))
-        weights = np.random.randint(1, 15, size=(dim_y,))
-        weights = np.tile(weights, (n_samples, 1))
+        # Values and Weights are fixed
+        values = torch.randint(10, 50, (dim_y,)).float()
+        values = values.repeat(n_samples, 1)
+        weights = torch.randint(1, 15, (dim_y,)).float()
+        weights = weights.repeat(n_samples, 1)
         
     else:
         raise ValueError("stochastic_target must be 'values', 'weights', or 'capacity'")
@@ -100,8 +101,8 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     
     # Argument for save path
-    parser.add_argument("--save_path", type=str, default="datasets/KP/knapsack_data.npz", help="Path to save the dataset")
-
+    parser.add_argument("--save_path", type=str, default="datasets/KP/knapsack_data.pt")
+    
     args = parser.parse_args()
 
     print(f"Generating data:")
@@ -130,7 +131,13 @@ if __name__ == "__main__":
         print(f"Creating directory: {directory}")
         os.makedirs(directory, exist_ok=True)
 
-    # Saving the generated KP instances in a single .npz file
-    np.savez(args.save_path, X=X, values=values, weights=weights, capacity=capacity)
+    # Saving the generated KP instances in a single .pt file
+    torch.save({
+        'X': X,
+        'values': values,
+        'weights': weights,
+        'capacity': capacity
+    }, args.save_path)
+    
     print(f"Dataset saved at: {args.save_path}")
 

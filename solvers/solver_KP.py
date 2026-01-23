@@ -1,5 +1,5 @@
 from ortools.linear_solver import pywraplp
-import numpy as np
+import torch
 import time
 import os
 
@@ -10,7 +10,7 @@ def parse_instances(file_path):
         raise FileNotFoundError(f"File {file_path} not found")
     
     # Load the .npz file containing isntances of KP
-    data = np.load(file_path) # NB: the file contains more then one instance
+    data = torch.load(file_path) # NB: the file contains more then one instance
     
     # Extract features X, values, weights, and capacity
     X = data['X'] # dim : (N_instances, dim_x)
@@ -27,7 +27,7 @@ def parse_solved_instances(file_path):
         raise FileNotFoundError(f"File {file_path} not found")
     
     # Load the .npz file containing isntances of KP
-    data = np.load(file_path) # NB: the file contains more then one instance
+    data = torch.load(file_path) # NB: the file contains more then one instance
     
     # Extract features X, values, weights, capacity, optimal_values, solve_times
     X = data['X'] # dim : (N_instances, dim_x)
@@ -39,7 +39,12 @@ def parse_solved_instances(file_path):
     
     return X, values, weights, capacity, optimal_values, solve_times
 
-def solve_KP(values, weights, capacity):
+def solve_KP(values:torch.Tensor, weights: torch.Tensor, capacity: torch.Tensor):
+
+    # Convert input Tensors to lists
+    val_list = values.tolist() 
+    weight_list = weights.tolist()
+    cap_val = capacity.item() 
 
     # Solver initialization
     solver = pywraplp.Solver.CreateSolver("SCIP")
@@ -47,16 +52,17 @@ def solve_KP(values, weights, capacity):
         print("Solver SCIP non found")
         return None, 0.0, []
 
-    num_items = len(values)
+    # Instance size
+    num_items = len(val_list)
     
     # 1. Variables: x[i] binary variable, 1 if the item i is taken, 0 otherwise
     x = [solver.BoolVar(f'x_{i}') for i in range(num_items)]
     
     # 2. Constraint: sum of weights of selected items <= capacity
-    solver.Add(solver.Sum([weights[i] * x[i] for i in range(num_items)]) <= capacity)
+    solver.Add(solver.Sum([weight_list[i] * x[i] for i in range(num_items)]) <= cap_val)
     
     # 3. Obj function: maximize total value of selected items
-    solver.Maximize(solver.Sum([values[i] * x[i] for i in range(num_items)]))
+    solver.Maximize(solver.Sum([val_list[i] * x[i] for i in range(num_items)]))
     
     # Solving and computing execution time
     start_time = time.time()
@@ -103,20 +109,19 @@ def save_solved_dataset_KP(dataset_path, solved_dataset_path, verbose=False):
             optimal_values.append(best_val)
             times.append(runtime)
 
-        # Transform lists to numpy arrays
-        optimal_values = np.array(optimal_values)
-        times = np.array(times)
+        # Transform lists to torch Tenosrs
+        optimal_values_tensor = torch.tensor(optimal_values, dtype=torch.float32)
+        times_tensor = torch.tensor(times, dtype=torch.float32)
 
-        # Save the results in a new .npz file
-        np.savez(
-            solved_dataset_path,
-            X=Xs,
-            values=all_values,
-            weights=all_weights,
-            capacity=all_capacities,
-            optimal_values=optimal_values,
-            solve_times=times
-        )
+        # Save the results in a new .pt file
+        torch.save({
+            'X': Xs,
+            'values': all_values,
+            'weights': all_weights,
+            'capacity': all_capacities,
+            'optimal_values': optimal_values_tensor,
+            'solve_times': times_tensor
+        }, solved_dataset_path)
         
     except FileNotFoundError as e:
         print(e)
@@ -126,9 +131,9 @@ def save_solved_dataset_KP(dataset_path, solved_dataset_path, verbose=False):
 
 if __name__ == "__main__":
 
-    dataset_path = "datasets/KP/knapsack_data.npz"
+    dataset_path = "datasets/KP/knapsack_data.pt"
 
-    solved_dataset_path = "datasets/KP/knapsack_data_solved.npz"
+    solved_dataset_path = "datasets/KP/knapsack_data_solved.pt"
 
     save_solved_dataset_KP(dataset_path, solved_dataset_path, verbose=True)
     
