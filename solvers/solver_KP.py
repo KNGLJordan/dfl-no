@@ -2,7 +2,6 @@ from ortools.linear_solver import pywraplp
 import numpy as np
 import time
 import os
-from solvers.solver_KP import solve_KP
 
 def parse_instances(file_path):
     
@@ -20,6 +19,25 @@ def parse_instances(file_path):
     capacity = data['capacity'] # dim : (N_instances, )
     
     return X, values, weights, capacity
+
+def parse_solved_instances(file_path):
+    
+    # check for file existence
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File {file_path} not found")
+    
+    # Load the .npz file containing isntances of KP
+    data = np.load(file_path) # NB: the file contains more then one instance
+    
+    # Extract features X, values, weights, capacity, optimal_values, solve_times
+    X = data['X'] # dim : (N_instances, dim_x)
+    values = data['values'] # dim : (N_instances, dim_values)
+    weights = data['weights'] # dim : (N_instances, dim_weights)
+    capacity = data['capacity'] # dim : (N_instances, )
+    optimal_values = data['optimal_values'] # dim : (N_instances, )
+    solve_times = data['solve_times'] # dim : (N_instances, )
+    
+    return X, values, weights, capacity, optimal_values, solve_times
 
 def solve_KP(values, weights, capacity):
 
@@ -56,37 +74,61 @@ def solve_KP(values, weights, capacity):
         return obj_value, exec_time, solution_items
     else:
         print("No optimal solution has been found")
-        return 0.0, exec_time, []
-
-if __name__ == "__main__":
-
-    dataset_path = "datasets/KP/knapsack_data.npz"
+        return float('inf'), exec_time, []
     
+def save_solved_dataset_KP(dataset_path, solved_dataset_path, verbose=False):
+
     try:
+
+        times = []
+        optimal_values = []
 
         # Load dataset parsing the file containing the instances of KP
         Xs, all_values, all_weights, all_capacities = parse_instances(dataset_path)
 
-        # Select a particular instance to solve
-        idx = 0 
+        # Instances loop
+        for idx in range(len(all_values)):
         
-        # Extract instance data
-        values_i = all_values[idx]
-        weights_i = all_weights[idx]
-        capacity_i = all_capacities[idx]
+            # Extract instance data
+            values_i = all_values[idx]
+            weights_i = all_weights[idx]
+            capacity_i = all_capacities[idx]
+            
+            # Solve the selected instance
+            best_val, runtime, sol = solve_KP(values_i, weights_i, capacity_i)
 
-        print(f"\nSolving instance {idx}:")
-        print(f"- Number of items: {len(values_i)}")
-        print(f"- Capacity: {capacity_i}")
-        
-        # Solve the selected instance
-        best_val, runtime, sol = solve_KP(values_i, weights_i, capacity_i)
-        
-        print(f"Optimal value: {best_val}")
-        print(f"Time required: {runtime:.4f} seconds")
+            if verbose:
+                print(f"\nSolved instance {idx}: optimal value = {best_val}, time = {runtime:.4f} seconds")
+
+            optimal_values.append(best_val)
+            times.append(runtime)
+
+        # Transform lists to numpy arrays
+        optimal_values = np.array(optimal_values)
+        times = np.array(times)
+
+        # Save the results in a new .npz file
+        np.savez(
+            solved_dataset_path,
+            X=Xs,
+            values=all_values,
+            weights=all_weights,
+            capacity=all_capacities,
+            optimal_values=optimal_values,
+            solve_times=times
+        )
         
     except FileNotFoundError as e:
         print(e)
         print("Dataset file not found")
     except Exception as e:
         print(f"An error during loading or solving the instance occured: {e}")
+
+if __name__ == "__main__":
+
+    dataset_path = "datasets/KP/knapsack_data.npz"
+
+    solved_dataset_path = "datasets/KP/knapsack_data_solved.npz"
+
+    save_solved_dataset_KP(dataset_path, solved_dataset_path, verbose=True)
+    
