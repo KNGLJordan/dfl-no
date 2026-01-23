@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from tqdm import tqdm
+import copy
+
 from torch.utils.data import DataLoader
 from solvers.solver_KP import solve_KP
 from torch.utils.data.dataset import Dataset
@@ -50,31 +53,64 @@ class DataLoader_PFLBaseline(DataLoader):
             num_workers=num_workers
         )
     
-def train_PFLBaseline(model, dataloader, criterion, optimizer, num_epochs, verbose = False):
-    # Set training mode
-    model.train()
+def train_PFLBaseline(model, train_dataloader, val_dataloader, criterion, optimizer, num_epochs, verbose = True):
+   
+    # History 
+    train_loss_history = []
+    val_loss_history = []
+
+    # Best results
+    best_val_loss = float('inf')
+    best_model_wts = copy.deepcopy(model.state_dict())
+    
     # Epoch loop
-    for epoch in range(num_epochs):
-        # Initialize loss for the epoch
+    if verbose:
+        loop = tqdm(range(num_epochs), desc="Training")
+    else:
+        loop = range(num_epochs)
+    
+    for epoch in loop:
+
+        # Train batch loop
+        model.train()
         running_loss = 0.0
-        # Batch loop
-        for inputs, targets in dataloader:
-            # Zero the parameter gradients
-            optimizer.zero_grad()
-            # Forward pass
-            outputs = model(inputs)
-            # Compute loss
-            loss = criterion(outputs, targets)
-            # Backward pass and optimization
-            loss.backward()
-            # Update lr using optimizer
-            optimizer.step()
-            # Accumulate loss
-            running_loss += loss.item() * inputs.size(0)
-        # Compute average loss for the epoch
-        epoch_loss = running_loss / len(dataloader.dataset)
+
+        for inputs, targets in train_dataloader:
+            optimizer.zero_grad() # Zero the parameter gradients
+            outputs = model(inputs) # Forward pass
+            loss = criterion(outputs, targets) # Compute loss
+            loss.backward() # Backward pass and optimization
+            optimizer.step() # Update lr using optimizer
+            running_loss += loss.item() * inputs.size(0) # Accumulate loss
+        epoch_loss = running_loss / len(train_dataloader.dataset) # Avg loss per epoch
+        train_loss_history.append(epoch_loss)
+        
+        # Val batch loop
+        model.eval()
+        val_running_loss = 0.0
+        with torch.no_grad():
+            for val_inputs, val_targets in val_dataloader:
+                val_outputs = model(val_inputs)
+                val_loss = criterion(val_outputs, val_targets)
+                val_running_loss += val_loss.item() * val_inputs.size(0)
+        val_epoch_loss = val_running_loss / len(val_dataloader.dataset)
+        val_loss_history.append(val_epoch_loss)
+
+        # Saving best model weights
+        if val_epoch_loss < best_val_loss:
+            best_val_loss = val_epoch_loss
+            best_model_wts = copy.deepcopy(model.state_dict())
+
+        # Update progress bar
         if verbose:
-            print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}')
+            loop.set_postfix(train_loss=epoch_loss, val_loss=val_epoch_loss)
+        
+    # Load best model weights
+    model.load_state_dict(best_model_wts)
+
+    # Return training history
+    return train_loss_history, val_loss_history
+
 
 def evaluate_PFLBaseline(
         model, 

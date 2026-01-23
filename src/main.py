@@ -1,17 +1,15 @@
-from solvers.solver_KP import parse_instances, solve_KP, parse_solved_instances
-from src.pfl_baseline import PFLBaseline, Dataset_PFLBaseline, DataLoader_PFLBaseline, train_PFLBaseline, evaluate_PFLBaseline
 import torch.optim as optim
 import torch.nn as nn
 import torch
 
-def split_tensor(tensor, train_size, val_size):
-    train = tensor[:train_size]
-    val = tensor[train_size:train_size + val_size]
-    test = tensor[train_size + val_size:]
-    return train, val, test
-
+from src.utils import split_tensor
+from src.pfl_baseline import PFLBaseline, Dataset_PFLBaseline, DataLoader_PFLBaseline, train_PFLBaseline, evaluate_PFLBaseline
+from solvers.solver_KP import parse_solved_instances
 
 if __name__ == "__main__":
+
+    # Set random seed for reproducibility
+    torch.manual_seed(0)
 
     # Dataset path
     dataset_path = "datasets/KP/knapsack_data_solved.pt"
@@ -38,9 +36,11 @@ if __name__ == "__main__":
 
     # Create dataset
     dataset_train = Dataset_PFLBaseline(X_train, values_train, weights_train, capacity_train, stochastic_target)
+    dataset_val = Dataset_PFLBaseline(X_val, values_val, weights_val, capacity_val, stochastic_target)
 
     # Create dataloader
     dataloader_train = DataLoader_PFLBaseline(dataset_train, batch_size=32, shuffle=True)
+    dataloader_val = DataLoader_PFLBaseline(dataset_val, batch_size=32, shuffle=False)
 
     # Initialize model
     input_dim = X.shape[1]
@@ -58,12 +58,12 @@ if __name__ == "__main__":
 
     # Training hyperparameters
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
     num_epochs = 2000
 
     # Train model
     print(f"Training model for {num_epochs} epochs...")
-    train_PFLBaseline(model, dataloader_train, criterion, optimizer, num_epochs)
+    train_PFLBaseline(model, dataloader_train, dataloader_val, criterion, optimizer, num_epochs)
 
     # Evaluate on test set
     print("Evaluating model on test set...")
