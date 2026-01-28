@@ -1,15 +1,52 @@
-import torch
+from src.datasets.dataset_KP import DatasetKPSolved
+from src.solvers.solver_KP import Solver_KP
+from src.models.pfl_baseline import PFLBaseline
 
-def split_tensor(tensor: torch.Tensor, train_size: int, val_size: int):
+def get_dataset(name, path, target):
 
-    if not isinstance(tensor, torch.Tensor):
-        raise ValueError("Input must be a torch Tensor")
+    print(f"Loading dataset: {name} from {path} with target {target}...")
     
-    if train_size + val_size > len(tensor):
-        raise ValueError("Train size and validation size exceed total tensor length")
+    if name == "KP":
+        return DatasetKPSolved(load_path=path, stochastic_target=target)
+    else:
+        raise ValueError(f"Unknown dataset type: {name}")
 
-    train = tensor[:train_size]
-    val = tensor[train_size:train_size + val_size]
-    test = tensor[train_size + val_size:]
+def get_solver(name):
+    if name == "KP":
+        return Solver_KP()
+    else:
+        raise ValueError(f"Unknown solver type: {name}")
+
+def get_model(name, input_dim, dataset, target):
+
     
-    return train, val, test
+    output_dim = 0
+    if isinstance(dataset, DatasetKPSolved): # Logica specifica per KP
+        if target == 'capacity':
+            output_dim = 1
+        elif target == 'values':
+            output_dim = dataset.solver_inputs['values'].shape[1]
+        elif target == 'weights':
+            output_dim = dataset.solver_inputs['weights'].shape[1]
+    
+    print(f"Initializing {name}: Input dim {input_dim} -> Output dim {output_dim}")
+
+    if name == "PFLBaseline":
+        hidden_dim = 128 
+        return PFLBaseline(input_dim, hidden_dim, output_dim)
+    else:
+        raise ValueError(f"Unknown model type: {name}")
+
+def map_prediction_to_solver_input(inputs, prediction, dataset_type, target):
+
+    modified_inputs = inputs.copy()
+    
+    if dataset_type == "KP":
+        if target == 'values':
+            modified_inputs['values'] = prediction
+        elif target == 'weights':
+            modified_inputs['weights'] = prediction
+        elif target == 'capacity':
+            modified_inputs['capacity'] = prediction.squeeze()
+            
+    return modified_inputs
