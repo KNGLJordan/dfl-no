@@ -1,0 +1,80 @@
+\section{Experiments}
+
+\subsection{Benchmarks}
+
+In order to evaluate the performance in terms of both regret and computational efficiency, we consider different problem classes.
+
+\textit{Knapsack (KP).} We generate 0-1 KP datsets following the procedure proposed 
+by \cite{elmachtoub2022smart}. We will refer to this type of dataset as \textit{KP-50}. 
+We assume that one between the weights, the values and the capacity has to be predicted, 
+while the other two are known. In particular, we refer to the datset in which the weights are unknown as \textit{KP-50 weights}.
+
+\subsection{Baselines}
+
+Our baselines include a predictive model trained for maximum likelihood estimation, 
+referred to as Prediction Focused Learning (PFL) model, 
+and state-of-the-art models for DFL.
+
+\subsection{Results}
+
+We report the results in terms of regret and computational efficiency.
+
+\begin{table}[htbp]
+  \caption{Average regret for all the models on KP-50 with uncertain weights, values and capacity and WSMC-10 with 50 sets.}
+  \label{tab:regret}
+  \centering
+  \small
+  \resizebox{\textwidth}{!}{
+    \begin{tabular}{l c c c c}
+        \toprule
+        \textit{Method} & \textit{KP-50 weights} & \textit{KP-50 values} & \textit{KP-50 capacity} & \textit{WSMC-10-50} \\
+        \midrule
+        PFL                     &  &  &  &  \\
+        GP-Surrogate            &  &  &  &  \\
+        SFGE                    &  &  &  &  \\
+        LANCER                  &  &  &  &  \\
+        LODL-MSE                &  &  &  &  \\
+        LODL-QUADRATIC          &  &  &  &  \\
+        LODL-DIRECTED-MSE       &  &  &  &  \\
+        LODL-DIRECTED-QUADRATIC &  &  &  &  \\
+        EGL-MSE                 &  &  &  &  \\
+        EGL-QUADRATIC           &  &  &  &  \\
+        EGL-DIRECTED-MSE        &  &  &  &  \\
+        EGL-DIRECTED-QUADRATIC  &  &  &  &  \\
+        SPO                     &  &  &  &  \\
+        \bottomrule
+    \end{tabular}
+  }
+\end{table}
+
+\begin{table}[htbp]
+  \caption{Average calls per instance and runtime for all the models on KP-50 with uncertain weights, values and capacity and WSMC-10 with 50 sets.}
+  \label{tab:calls_runtime}
+  \centering
+  \small
+  \resizebox{\textwidth}{!}{
+    \begin{tabular}{c l c c c c}
+        \toprule
+        & \textit{Method} & \textit{KP-50 weights} & \textit{KP-50 values} & \textit{KP-50 capacity} & \textit{WSMC-10-50} \\
+        \midrule
+        \multirow{6}{*}{\rotatebox[origin=c]{90}{\textit{Slv. calls}}} 
+        & GP-Surrogate  &  &  &  &  \\
+        & SFGE          &  &  &  &  \\
+        & LANCER        &  &  &  &  \\
+        & LODL (ALL)    &  &  &  &  \\
+        & EGL (ALL)     &  &  &  &  \\
+        & SPO           &  &  &  &  \\
+        \midrule
+        \multirow{6}{*}{\rotatebox[origin=c]{90}{\textit{Runtime}}} 
+        & GP-Surrogate  &  &  &  &  \\
+        & SFGE          &  &  &  &  \\
+        & LANCER        &  &  &  &  \\
+        & LODL (BEST)   &  &  &  &  \\
+        & EGL (BEST)    &  &  &  &  \\
+        & SPO           &  &  &  &  \\
+        \bottomrule
+    \end{tabular}
+  }
+\end{table}
+
+

@@ -1,0 +1,30 @@
+\section{Problem Formulation}
+
+We consider a generalization of a DFL setting, where the parameters y of an optimization problem (e.g. demands) are not known at decision time, but can be estimated based on contextual information (e.g. hour of the day). % [cite: 411, 468] 
+Formally, let X and Y be random variables with support $\mathcal{D}_{x}$ and $\mathcal{D}_{y}$, representing respectively contextual information and the uncertain parameters, and correlated according to their joint distribution $P(X,Y)$. % [cite: 468]
+
+At decision-making time, the problem parameters are estimated via a predictive model $h_{\theta}:\mathcal{D}_{x}\rightarrow \mathcal{D}_{y}$ with parameter vector $\theta$. % [cite: 469] 
+Based on the estimator output $\hat{y}$, we compute a decision vector $z^{*}$ by solving a constrained optimization problem: % [cite: 469]
+\begin{equation}
+    z^{*}(\hat{y})=\arg\min\{f(\hat{y},z)|z\in C(\hat{y})\} % [cite: 470, 471]
+\end{equation}
+where $f:\mathcal{D}_{y}\times \mathcal{D}_{z}\rightarrow\mathbb{R}$ is the problem cost function and $C:\mathcal{D}_{y}\rightarrow 2^{\mathcal{D}_{z}}$ is a constraint function that denotes the feasible space. % [cite: 472] 
+We treat $z^{*}$ as a function, assuming tie-breaking is used when multiple optimal solutions exist. % [cite: 473] 
+Once the decisions are executed, their quality is determined by means of a second ``true'' cost function $g:\mathcal{D}_{y}\times \mathcal{D}_{z}\rightarrow\mathbb{R}$. % [cite: 474] 
+Specifically, $g(y,z)$ represents the cost incurred by the solution z, under a realization y sampled from $P(Y|x)$. % [cite: 475]
+
+The use of a distinct function g for decision quality evaluation distinguishes our setup from those typically used in DFL, and enables compensating for misspecified decision problem models - as opposed to misspecified predictors as in Huang \& Gupta (2024). % [cite: 476] 
+These can stem from treating uncertain parameters (e.g. travel times or demands) as deterministic, from disregarded minor constraints, or from approximated non-linearities - all common techniques to ensure scalability in real-world applications. % [cite: 477] 
+This choice also allows us to deal with estimated parameters in the problem constraints in eq. (1), assuming that infeasible solutions can be repaired at an additional cost. % [cite: 478, 479]
+
+We wish to train h for minimal expected decision regret, approximated via a sample average: % [cite: 480]
+\begin{equation}
+    \arg\min\frac{1}{m}\sum_{i=1}^{m}r(y_{i},\hat{y}_{i}) % [cite: 481, 482]
+\end{equation}
+where $\{x_{i},y_{i}\}_{i=1}^{m}\sim P(X,Y)$ is the training data, $\hat{y}_{i}=h_{\theta}(x_{i})$ and $r(y_{i},\hat{y}_{i})=g(y_{i},z^{*}(\hat{y}_{i}))-g(y_{i},z^{*}(y_{i}))$. % [cite: 483] 
+Solving eq. (2) via first-order methods, as typically done with neural networks predictors, requires computing the gradient of the regret function, i.e.: % [cite: 483, 484]
+\begin{equation}
+    \frac{\partial}{\partial\theta}r(y_{i},\hat{y}_{i})=\frac{\partial g}{\partial z^{*}}\frac{\partial z^{*}}{\partial\hat{y}_{i}}\frac{\partial\hat{y}_{i}}{\partial\theta} % [cite: 485, 486]
+\end{equation}
+When the optimization problem is linear or combinatorial, or the g function is piecewise-constant, the gradient might be undefined or null on a large part of the predicted parameter space. % [cite: 487] 
+Furthermore, evaluating the regret function requires computing $z^{*}$ and g once per example and per training epoch, which can be prohibitively expensive, when the optimization problem is NP-hard, or the true cost function is based on optimization or simulation. % [cite: 488]
