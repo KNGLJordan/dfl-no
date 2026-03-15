@@ -3,15 +3,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 import copy
+import torch.optim as optim
 
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 
-class PFLBaseline(nn.Module):
+from src.core.registry import MODELS
+
+@MODELS.register("PFL_Baseline")
+class PFL_Baseline(nn.Module):
     # A simple feedforward neural network for PFL baseline
 
     def __init__(self, input_dim, hidden_dim, output_dim):
-        super(PFLBaseline, self).__init__()
+
+        super(PFL_Baseline, self).__init__()
+
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, output_dim)
 
@@ -20,12 +26,16 @@ class PFLBaseline(nn.Module):
         self.train_loss_history = []
         self.val_loss_history = []
 
+        self.criterion = nn.MSELoss()
+        self.optimizer = optim.Adam(self.parameters())
+
+
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
     
-    def train_model(self, train_dataloader, val_dataloader, criterion, optimizer, num_epochs, verbose = True):
+    def train_model(self, train_dataloader, val_dataloader, num_epochs, verbose = True):
    
         # Epoch loop
         if verbose:
@@ -40,11 +50,11 @@ class PFLBaseline(nn.Module):
             running_loss = 0.0
 
             for inputs, targets in train_dataloader:
-                optimizer.zero_grad() # Zero the parameter gradients
+                self.optimizer.zero_grad() # Zero the parameter gradients
                 outputs = self(inputs) # Forward pass
-                loss = criterion(outputs, targets) # Compute loss
+                loss = self.criterion(outputs, targets) # Compute loss
                 loss.backward() # Backward pass and optimization
-                optimizer.step() # Update lr using optimizer
+                self.optimizer.step() # Update lr using optimizer
                 running_loss += loss.item() * inputs.size(0) # Accumulate loss
             epoch_loss = running_loss / len(train_dataloader.dataset) # Avg loss per epoch
             self.train_loss_history.append(epoch_loss)
@@ -55,7 +65,7 @@ class PFLBaseline(nn.Module):
             with torch.no_grad():
                 for val_inputs, val_targets in val_dataloader:
                     val_outputs = self(val_inputs)
-                    val_loss = criterion(val_outputs, val_targets)
+                    val_loss = self.criterion(val_outputs, val_targets)
                     val_running_loss += val_loss.item() * val_inputs.size(0)
             val_epoch_loss = val_running_loss / len(val_dataloader.dataset)
             self.val_loss_history.append(val_epoch_loss)

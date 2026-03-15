@@ -1,34 +1,39 @@
-import torch.optim as optim
 import torch.nn as nn
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 import copy
 import argparse
 
-from src.models.pfl_baseline import PFLBaseline
-from src.datasets.dataset_KP import DatasetKPSolved
-from src.solvers.solver_KP import Solver_KP
-from src.metrics import compute_avg_regret
-from src.utils import get_dataset, get_model, get_solver, map_prediction_to_solver_input
+from src.core.registry import DATASETS, MODELS, SOLVERS
+
+import src.data.knapsack
+import src.models.pfl_baseline
+import src.solvers.knapsack_solver
+
+from src.utils.metrics import compute_avg_regret
 
 def parse_args():
 
     parser = argparse.ArgumentParser(description="Decision-Focused Learning Experiment Runner")
 
     # Data arguments
-    parser.add_argument("--dataset", type=str, default="KP", choices=["KP"], help="Dataset name")
-    parser.add_argument("--data_path", type=str, default="datasets/KP/knapsack_data_solved.pt", help="Path to .pt file")
-    parser.add_argument("--target", type=str, default="values", choices=["values", "weights", "capacity"], help="Stochastic parameter to predict")
+    parser.add_argument("--dataset", type=str, default="Knapsack_Values_Dataset", choices=["Knapsack_Values_Dataset"], help="Dataset class name")
+    parser.add_argument("--data_path", type=str, default="datasets/KP/knapsack_values_data.pt", help="Path to .pt file")
     
     # Model arguments
-    parser.add_argument("--model", type=str, default="PFLBaseline", choices=["PFLBaseline"], help="Model architecture")
-    parser.add_argument("--hidden_dim", type=int, default=128, help="Hidden dimension size")
+    parser.add_argument("--model", type=str, default="PFL_Baseline", choices=["PFL_Baseline"], help="Model architecture class name")
+    parser.add_argument("--hidden_dim", type=int, default=256, help="Hidden dimension size")
     
     # Training arguments
+    parser.add_argument("--train_split", type=float, default=0.7, help="Proportion of data for training")
+    parser.add_argument("--val_split", type=float, default=0.15, help="Proportion of data for validation")
     parser.add_argument("--epochs", type=int, default=2000, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=1e-2, help="Learning rate")
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
+
+    # Solver arguments
+    parser.add_argument("--solver", type=str, default="Knapsack_Solver", choices=["Knapsack_Solver"], help="Optimization solver class name")
     
     return parser.parse_args()
 
@@ -39,10 +44,11 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     
     # Load dataset
-    dataset = get_dataset(args.dataset, args.data_path, args.target)
+    DatasetClass = DATASETS.get(args.dataset)
+    dataset = DatasetClass(args.data_path)
 
     # Split train, val, test
-    dataset.split(train_ratio=0.7, val_ratio=0.15)
+    dataset.split(train_ratio=args.train_split, val_ratio=args.val_split)
     X_train, y_train = dataset.get_X('train'), dataset.get_y('train')
     X_val, y_val = dataset.get_X('val'), dataset.get_y('val')
     X_test = dataset.get_X('test')
@@ -53,19 +59,18 @@ if __name__ == "__main__":
 
     # Initialize model
     input_dim = X_train.shape[1]
-    model = get_model(args.model, input_dim, dataset, args.target)
-
-    # Training hyperparameters
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    ModelClass = MODELS.get(args.model)
+    if args.model == "PFL_Baseline":
+        model = ModelClass(input_dim=input_dim, hidden_dim=args.hidden_dim, output_dim=y_train.shape[1])
+    else:
+        print(f"To think about how to handle this part of the main from a software engineering PoV, since the model class may have different init args...")
+        exit()
 
     # Train model
     print(f"\nStarting training for {args.epochs} epochs...")
     model.train_model(
         train_dataloader=train_loader,
         val_dataloader=val_loader,
-        criterion=criterion,
-        optimizer=optimizer,
         num_epochs=args.epochs,
         verbose=True
     )
@@ -74,42 +79,38 @@ if __name__ == "__main__":
     print("\nStarting evaluation (Predict-then-Optimize)")
 
     # Get Ground Truth for testset
-    true_solver_inputs = dataset.get_solver_inputs(type='test')
-    true_optimal_values = dataset.get_optimal_solutions(type='test')
-
-    # Optimization Solver 
-    solver = get_solver(args.dataset)
+    true_solver_inputs = dataset.get_true_solver_inputs(type='test')
 
     # Model prediction
     y_pred_test = model.predict(X_test)
+    # Map predictions to solver inputs (i.e y_hat)
+    pred_solver_inputs = dataset.get_solver_inputs_by_predictions(y_pred_test, type='test')
 
-    # Map predictions to solver inputs
-    pred_solver_inputs = map_prediction_to_solver_input(
-        true_solver_inputs, 
-        y_pred_test, 
-        args.dataset, 
-        args.target
-    )
+    # Optimization Solver 
+    SolverClass = SOLVERS.get(args.solver)
+    solver = SolverClass()
 
     # Evaluate Regret on Test Set
+    true_optimal_values = torch.zeros(X_test.shape[0])
     actual_obj_values = torch.zeros(X_test.shape[0])
     num_samples = X_test.shape[0]
     
     for i in range(num_samples):
         
-        pred_input_i = {k: v[i] for k, v in pred_solver_inputs.items()}
-        
+        # Compute the cost under true parameters of the optimal solution under true parameters (i.e. g(y_i,z*(y_i)))
         true_input_i = {k: v[i] for k, v in true_solver_inputs.items()}
+        optimal_cost, _, _ = solver.solve(true_input_i)
+        true_optimal_values[i] = optimal_cost
         
-        _, _, solution_items = solver.solve(pred_input_i)
-        
-        actual_val = solver.evaluate_solution(solution_items, true_input_i)
-        
-        actual_obj_values[i] = actual_val
+        # Compute the cost under true parameters of the optimal solution under estimated parameters (i.e. g(y_i,z*(y_hat_i)))
+        pred_input_i = {k: v[i] for k, v in pred_solver_inputs.items()}
+        _, _, decision_by_prediction = solver.solve(pred_input_i)
+        actual_cost = solver.evaluate_solution(decision_by_prediction, true_input_i)
+        actual_obj_values[i] = actual_cost
 
     avg_regret = compute_avg_regret(actual_obj_values, true_optimal_values)
     
-    print(f"RESULTS - {args.dataset} / {args.target}")
+    print(f"RESULTS - {args.dataset}")
     print(f"Average Regret: {avg_regret:.4f}")
 
 

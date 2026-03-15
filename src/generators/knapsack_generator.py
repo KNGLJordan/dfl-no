@@ -2,7 +2,7 @@ import torch
 import os 
 import argparse
 
-def generate_kp_data(
+def generate_knapsack_data(
         n_samples=1000, 
         dim_x=5, 
         dim_y=50, 
@@ -59,6 +59,7 @@ def generate_kp_data(
     if stochastic_target == 'values':
         # Values depend on X
         values = stochastic_signal
+        y = values
         # Weights and Capacity are fixed
         weights = torch.randint(1, 15, (dim_y,)).float()
         weights = weights.repeat(n_samples, 1)
@@ -68,6 +69,7 @@ def generate_kp_data(
         # Weights depend on X
         # Add 1 to avoid zero weights which would make the problem trivial # TODO: check if needed
         weights = stochastic_signal + 1
+        y = weights
         #Values and Capacity are fixed
         values = torch.randint(10, 50, (dim_y,)).float()
         values = values.repeat(n_samples, 1)
@@ -76,6 +78,7 @@ def generate_kp_data(
     elif stochastic_target == 'capacity':
         # Capacity depends on X
         capacity = stochastic_signal.flatten()
+        y = capacity
         # Values and Weights are fixed
         values = torch.randint(10, 50, (dim_y,)).float()
         values = values.repeat(n_samples, 1)
@@ -85,7 +88,7 @@ def generate_kp_data(
     else:
         raise ValueError("stochastic_target must be 'values', 'weights', or 'capacity'")
 
-    return X, values, weights, capacity
+    return X, y, values, weights, capacity
 
 if __name__ == "__main__":
     
@@ -101,7 +104,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     
     # Argument for save path
-    parser.add_argument("--save_path", type=str, default="datasets/KP/knapsack_data.pt")
+    parser.add_argument("--save_path", type=str, default="datasets/KP/knapsack_values_data.pt")
     
     args = parser.parse_args()
 
@@ -115,7 +118,7 @@ if __name__ == "__main__":
     print(f" - Random seed: {args.seed}")
     
     # Generating KP insatnces
-    X, values, weights, capacity = generate_kp_data(
+    X, y, values, weights, capacity = generate_knapsack_data(
         n_samples=args.n_samples,
         dim_x=args.dim_x,
         dim_y=args.dim_y,
@@ -134,6 +137,7 @@ if __name__ == "__main__":
     # Saving the generated KP instances in a single .pt file
     torch.save({
         'X': X,
+        'y': y,
         'values': values,
         'weights': weights,
         'capacity': capacity
