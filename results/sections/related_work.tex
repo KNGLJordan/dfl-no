@@ -1,3 +1,15 @@
 \section{Related Work} 
-Recent works on decision focused learning (\cite{silvestri2026score}) relied on random perturbations on the estimated parameters to create informative gradients, specifically using Score Function Gradient Estimation (SFGE).
+The precursor of DFL is the work of \cite{kao2009directed}, which proposed to use Directed Regression (DR) algorithm to combine ordinary least sequares and empirical optimization. However, their objective is just to solve an uncostrained quadratic optimization problem, with unknown paramters in the objective function.
+
+\cite{tulabandhula2013machine} proposed to align statistical modeling with decision making, using the operational cost as a regularization term for learning. However, the operatinal cost is computed using the predicted parameters and not the true ones.
+
+\cite{wilder2019melding} introduced the general framework for DFL, focusing on combinatorial optimization problems.
+
+One major contribution is \cite{elmachtoub2022smart}, which proposed the Smart Predict-then-Optimize (SPO) loss, that directly optimizes the decision quality. However, the SPO loss is non-convex and non-smooth, making it difficult to optimize. 
+To overcome this issue, \cite{elmachtoub2022smart} proposed to use a convex surrogate loss function, called SPO+ loss, which is a convex upper bound of the SPO loss.
+While, \cite{mandi2022decision} pointed out that DFL can be generalized as learning-to-rank problem. Their work formulates pointwise, pairwise and listwise ranking loss functions for the proposed setting.
+
+The hardest setting for DFL, addressed by \cite{ferber2023surco}, is when the optimization problem is NP-hard and at the same time it is difficult to smooth its piecewise constant gradient. This is the case of Linear Non-integer Programming, where many smoothing techniques used for Integer Programming (IP) and Integer Linear Programming (ILP) cannot be used.
+
+Another interesting contribution (\cite{hu2023branch}) is the Branch \& Learn (BL) algorithm, which is a post-hoc correction method for PoT with unknown parameters in constraints. The predicted parameters could lead to a solution infeasible with respect to the true parameters and BL solves this probelm. However, BL is only a post-hoc correction method, also quite computationally expensive.
 

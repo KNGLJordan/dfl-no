@@ -1,0 +1,49 @@
+This is BibTeX, Version 0.99d (TeX Live 2025)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: plainnat.bst
+Database file #1: references.bib
+Warning--empty journal in tulabandhula2013machine
+Warning--can't use both volume and number fields in wilder2019melding
+You've used 7 entries,
+            2773 wiz_defined-function locations,
+            637 strings with 6272 characters,
+and the built_in function-call counts, 4227 in all, are:
+= -- 395
+> -- 237
+< -- 7
++ -- 79
+- -- 72
+* -- 327
+:= -- 602
+add.period$ -- 24
+call.type$ -- 7
+change.case$ -- 45
+chr.to.int$ -- 7
+cite$ -- 16
+duplicate$ -- 201
+empty$ -- 330
+format.name$ -- 83
+if$ -- 927
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 7
+newline$ -- 43
+num.names$ -- 28
+pop$ -- 98
+preamble$ -- 1
+purify$ -- 38
+quote$ -- 0
+skip$ -- 176
+stack$ -- 0
+substring$ -- 198
+swap$ -- 58
+text.length$ -- 5
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 77
+warning$ -- 2
+while$ -- 35
+width$ -- 0
+write$ -- 100
+(There were 2 warnings)

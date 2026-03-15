@@ -1,0 +1,43 @@
+\begin{thebibliography}{7}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Elmachtoub and Grigas(2022)]{elmachtoub2022smart}
+Adam~N Elmachtoub and Paul Grigas.
+\newblock Smart “predict, then optimize”.
+\newblock \emph{Management Science}, 68\penalty0 (1):\penalty0 9--26, 2022.
+
+\bibitem[Ferber et~al.(2023)Ferber, Huang, Zha, Schubert, Steiner, Dilkina, and Tian]{ferber2023surco}
+Aaron~M Ferber, Taoan Huang, Daochen Zha, Martin Schubert, Benoit Steiner, Bistra Dilkina, and Yuandong Tian.
+\newblock Surco: Learning linear surrogates for combinatorial nonlinear optimization problems.
+\newblock In \emph{International Conference on Machine Learning}, pages 10034--10052. PMLR, 2023.
+
+\bibitem[Hu et~al.(2023)Hu, Lee, and Lee]{hu2023branch}
+Xinyi Hu, Jasper~CH Lee, and Jimmy~HM Lee.
+\newblock Branch \& learn with post-hoc correction for predict+ optimize with unknown parameters in constraints.
+\newblock In \emph{International Conference on Integration of Constraint Programming, Artificial Intelligence, and Operations Research}, pages 264--280. Springer, 2023.
+
+\bibitem[Kao et~al.(2009)Kao, Roy, and Yan]{kao2009directed}
+Yi-hao Kao, Benjamin Roy, and Xiang Yan.
+\newblock Directed regression.
+\newblock \emph{Advances in Neural Information Processing Systems}, 22, 2009.
+
+\bibitem[Mandi et~al.(2022)Mandi, Bucarey, Tchomba, and Guns]{mandi2022decision}
+Jayanta Mandi, V{\i}ctor Bucarey, Maxime Mulamba~Ke Tchomba, and Tias Guns.
+\newblock Decision-focused learning: Through the lens of learning to rank.
+\newblock In \emph{International conference on machine learning}, pages 14935--14947. PMLR, 2022.
+
+\bibitem[Tulabandhula and Rudin(2013)]{tulabandhula2013machine}
+Theja Tulabandhula and Cynthia Rudin.
+\newblock Machine learning with operational costs.
+\newblock 2013.
+
+\bibitem[Wilder et~al.(2019)Wilder, Dilkina, and Tambe]{wilder2019melding}
+Bryan Wilder, Bistra Dilkina, and Milind Tambe.
+\newblock Melding the data-decisions pipeline: Decision-focused learning for combinatorial optimization.
+\newblock In \emph{Proceedings of the AAAI conference on artificial intelligence}, volume~33, pages 1658--1665, 2019.
+
+\end{thebibliography}
