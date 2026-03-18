@@ -1,0 +1,58 @@
+# sweep.yaml
+
+entity: giordani-francesco2002-university-of-bologna
+project: dfl-no
+
+# Specifica come lanciare lo script (esattamente come nel tuo .sh)
+command:
+  - ${env}
+  - python
+  - "-m"
+  - "src.main"
+  - ${args}
+
+# Metodo di ottimizzazione (bayes è ottimo per trovare i minimi velocemente)
+method: bayes
+
+# La metrica che vogliamo minimizzare (assicurati di loggarla nel main.py con wandb.log)
+metric:
+  name: Average_Regret
+  goal: minimize
+
+parameters:
+  # ==========================================
+  # Iperparametri da esplorare (Tuning)
+  # ==========================================
+  lr:
+    distribution: log_uniform_values
+    min: 0.0001
+    max: 0.1
+  hidden_dim:
+    values: [64, 128, 256, 512]
+  batch_size:
+    values: [16, 32, 64, 128]
+  normalize_input:
+    values: [0, 1] 
+  normalize_output:
+    values: [0, 1] 
+
+  # ==========================================
+  # Parametri fissi (presi dal tuo script .sh)
+  # ==========================================
+  dataset:
+    value: "Knapsack_Values_Dataset"
+  data_path:
+    value: "datasets/KP/knapsack_values_data.pt"
+  model:
+    value: "PFL_Baseline"
+  train_split:
+    value: 0.7
+  val_split:
+    value: 0.15
+  epochs:
+    value: 1000
+  seed:
+    value: 0
+  solver:
+    value: "Knapsack_Solver"
+  

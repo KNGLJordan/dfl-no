@@ -14,12 +14,15 @@ from src.core.registry import MODELS
 class PFL_Baseline(nn.Module):
     # A simple feedforward neural network for PFL baseline
 
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self, input_dim, hidden_dim, output_dim, lr):
 
         super(PFL_Baseline, self).__init__()
 
         self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, output_dim)
+
+        self.bn = nn.BatchNorm1d(hidden_dim)
 
         self.best_model_wts = copy.deepcopy(self.state_dict())
         self.best_val_loss = float('inf')
@@ -27,12 +30,12 @@ class PFL_Baseline(nn.Module):
         self.val_loss_history = []
 
         self.criterion = nn.MSELoss()
-        self.optimizer = optim.Adam(self.parameters())
+        self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.relu(self.bn(self.fc1(x)))
+        x = self.fc3(x)
         return x
     
     def train_model(self, train_dataloader, val_dataloader, num_epochs, verbose = True):

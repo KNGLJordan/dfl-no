@@ -5,8 +5,8 @@
 # ==========================================
 
 # Data parameters
-DATASET="Knapsack_Values_Dataset"
-DATA_PATH="datasets/KP/knapsack_values_data.pt"
+DATASET="Knapsack_Capacity_Dataset"
+DATA_PATH="datasets/KP/knapsack_capacity_data.pt"
 
 # Model parameters
 MODEL="PFL_Baseline"
